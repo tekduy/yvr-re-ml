@@ -29,6 +29,12 @@ def read_csv():
 
     return data1, data2, data3, data4, data5, data6, data7, data8, data9, data10, data11, data12, data13, data14
 
+def convert_Parking(d):
+    if pd.isnull(d):
+        return 0
+    else:
+        return d
+    
 def uppercase(d):
     return d.upper()
 
@@ -66,7 +72,10 @@ def main():
     result['List Price'] = result['List Price'].map(lambda x: x.lstrip('$')).replace(',', '', regex=True)
     result['Sold Price'] = result['Sold Price'].map(lambda x: x.lstrip('$')).replace(',', '', regex=True)
     #print(result)
-
+    
+    #Convert Parking to 0 if null
+    result['TotalPrkng'] = result['TotalPrkng'].apply(convert_Parking)
+    
     #Convert VwSpecify to uppercase
     result['VwSpecify'] = result['VwSpecify'].astype(str).apply(uppercase)
     result['VwSpecify'] = result['VwSpecify'].replace('NAN', '')
