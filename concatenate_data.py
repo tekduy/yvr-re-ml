@@ -13,7 +13,8 @@ from geopy.geocoders import Nominatim
 import re
 
 #212 838 HAMILTON STREET
-house_number_pattern = re.compile(r'^(\S+) \d+ \S+ \S+')
+address_pattern = re.compile(r'^(\S+) \d+ \S+ \S+')
+house_number_pattern = re.compile(r'^\S+')
 
 def read_csv():
     data1 = pd.read_csv('2014-12.csv')
@@ -40,9 +41,14 @@ def convert_Parking(d):
         return d
 
 def get_HouseNumber(d):
-    m = house_number_pattern.match(d)
+    m = address_pattern.match(d)
     if m:
-        return m.group(1)
+        return m.group(1)    
+
+def format_GeoPy(d):
+    new_address = re.sub(house_number_pattern, '', d) #Remove house number
+    new_address = new_address + ', VANCOUVER' #Add Vancouver to address
+    return new_address
 
 def uppercase(d):
     return d.upper()
@@ -69,32 +75,46 @@ def convert_VwSpecify(x,y):
         else:
             return 1
 
-
 def main():
     data1, data2, data3, data4, data5, data6, data7, data8, data9, data10, data11, data12, data13, data14 = read_csv()
     # result = pd.concat([data1, data2, data3, data4, data5, data6, data7, data8, data9, data10, data11, data12, data13, data14])
     result = data14
+    
+    #Rename columns
+    result = result.rename(index=str, columns={"S/A": "SubArea", 
+                                               "DOM": "DaysOnMarket", 
+                                               "Tot BR": "Bedrooms", 
+                                               "Tot Baths": "Bathrooms", 
+                                               "TotFlArea": "FloorArea", 
+                                               "Yr Blt": "YearBuilt", 
+                                               "TotalPrkng": "Parking", 
+                                               "StratMtFee": "MaintenanceFees", 
+                                               "SP Sqft": "SalePricePerSquareFoot", 
+                                               "TotalPrkng": "Parking"})
+
     #Remove $ and , from prices
     result['Price'] = result['Price'].map(lambda x: x.lstrip('$')).replace(',', '', regex=True)
-    result['StratMtFee'] = result['StratMtFee'].astype(str).map(lambda x: x.lstrip('$')).replace(',', '', regex=True)
-    result['SP Sqft'] = result['SP Sqft'].map(lambda x: x.lstrip('$')).replace(',', '', regex=True)
+    result['MaintenanceFees'] = result['MaintenanceFees'].astype(str).map(lambda x: x.lstrip('$')).replace(',', '', regex=True)
+    result['SalePricePerSquareFoot'] = result['SalePricePerSquareFoot'].map(lambda x: x.lstrip('$')).replace(',', '', regex=True)
     result['List Price'] = result['List Price'].map(lambda x: x.lstrip('$')).replace(',', '', regex=True)
     result['Sold Price'] = result['Sold Price'].map(lambda x: x.lstrip('$')).replace(',', '', regex=True)
     #print(result)
     
     #Convert Parking to 0 if null
-    result['TotalPrkng'] = result['TotalPrkng'].apply(convert_Parking)
+    result['Parking'] = result['Parking'].apply(convert_Parking)
     
     #Get HouseNumber
     result['HouseNumber'] = result['Address'].apply(get_HouseNumber)
+    
+    #Convert to GeoPy format
+    result['Address'] = result['Address'].apply(format_GeoPy)
     
     #Convert VwSpecify to uppercase
     result['VwSpecify'] = result['VwSpecify'].astype(str).apply(uppercase)
     result['VwSpecify'] = result['VwSpecify'].replace('NAN', '')
 
     #Convert VwSpecify to -1,0,1,2
-    result['VwSpecify_Numeric'] = result.apply(lambda x: convert_VwSpecify(x['View'], x['VwSpecify']), axis=1)
-    result = result.rename(index=str, columns={"S/A": "SubArea", "DOM": "DaysOnMarket", "Tot BR": "Bedrooms", "Tot Baths": "Bathrooms", "TotFlArea": "FloorArea", "Yr Blt": "YearBuilt", "TotalPrkng": "Parking", "StratMtFee": "MaintenanceFees", "SP Sqft": "SalePricePerSquareFoot", "TotalPrkng": "Parking", "VwSpecify_Numeric": "ValueOfView"})
+    result['ValueOfView'] = result.apply(lambda x: convert_VwSpecify(x['View'], x['VwSpecify']), axis=1)
 
     X = result[['Address', 'SubArea', 'DaysOnMarket', 'Bedrooms', 'Bathrooms', 'FloorArea', 'YearBuilt', 'Age', 'Locker', 'Parking', 'MaintenanceFees', 'SalePricePerSquareFoot', 'List Price', 'Sold Date', 'ValueOfView']]
     y = result['Sold Price'].values
