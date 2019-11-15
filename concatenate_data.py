@@ -34,7 +34,7 @@ def read_csv():
 
     return data1, data2, data3, data4, data5, data6, data7, data8, data9, data10, data11, data12, data13, data14
 
-def convert_Parking(d):
+def nulls_to_zeros(d):
     if pd.isnull(d):
         return 0
     else:
@@ -101,7 +101,7 @@ def main():
     #print(result)
     
     #Convert Parking to 0 if null
-    result['Parking'] = result['Parking'].apply(convert_Parking)
+    result['Parking'] = result['Parking'].apply(nulls_to_zeros)
     
     #Get HouseNumber
     result['HouseNumber'] = result['Address'].apply(get_HouseNumber)
@@ -116,7 +116,11 @@ def main():
     #Convert VwSpecify to -1,0,1,2
     result['ValueOfView'] = result.apply(lambda x: convert_VwSpecify(x['View'], x['VwSpecify']), axis=1)
 
-    X = result[['Address', 'SubArea', 'DaysOnMarket', 'Bedrooms', 'Bathrooms', 'FloorArea', 'YearBuilt', 'Age', 'Locker', 'Parking', 'MaintenanceFees', 'SalePricePerSquareFoot', 'List Price', 'Sold Date', 'ValueOfView']]
+    X = result[['Address', 'SubArea', 'DaysOnMarket', 'Bedrooms', 
+                'Bathrooms', 'FloorArea', 'YearBuilt', 'Age', 
+                'Locker', 'Parking', 'MaintenanceFees', 'SalePricePerSquareFoot', 
+                'List Price', 'Sold Date', 'ValueOfView']]
+    
     y = result['Sold Price'].values
 
     # #Convert address to lat and long
