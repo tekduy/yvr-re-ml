@@ -6,6 +6,10 @@ Created on Mon Nov 11 18:12:59 2019
 """
 
 import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.neural_network import MLPRegressor
+from geopy.geocoders import Nominatim
 
 def read_csv():
     data1 = pd.read_csv('2014-12.csv')
@@ -52,9 +56,8 @@ def convert_VwSpecify(x,y):
 
 
 def main():
-    # data1, data2, data3, data4, data5, data6, data7, data8, data9, data10, data11, data12, data13, data14 = read_csv()
+    data1, data2, data3, data4, data5, data6, data7, data8, data9, data10, data11, data12, data13, data14 = read_csv()
     # result = pd.concat([data1, data2, data3, data4, data5, data6, data7, data8, data9, data10, data11, data12, data13, data14])
-    data14 = read_csv()
     result = data14
     #Remove $ and , from prices
     result['Price'] = result['Price'].map(lambda x: x.lstrip('$')).replace(',', '', regex=True)
@@ -63,8 +66,6 @@ def main():
     result['List Price'] = result['List Price'].map(lambda x: x.lstrip('$')).replace(',', '', regex=True)
     result['Sold Price'] = result['Sold Price'].map(lambda x: x.lstrip('$')).replace(',', '', regex=True)
     #print(result)
-    # Change NAN to 0
-    result['VwSpecify'] = result['VwSpecify'].replace('NAN', '')
 
     #Convert VwSpecify to uppercase
     result['VwSpecify'] = result['VwSpecify'].astype(str).apply(uppercase)
@@ -72,14 +73,25 @@ def main():
 
     #Convert VwSpecify to -1,0,1,2
     result['VwSpecify_Numeric'] = result.apply(lambda x: convert_VwSpecify(x['View'], x['VwSpecify']), axis=1)
-    result.rename(index=str, columns={"S/A": "SubArea", "DOM": "DaysOnMarket", "Tot BR": "Bedrooms", "Tot Baths": "Bathrooms", "TotFlArea": "FloorArea", "YrBlt": "YearBuilt", "TotalPrkng": "Parking", "StratMtFee": "MaintenanceFees", "SP Sqft": "SalePricePerSquareFoot", "TotalPrkng": "Parking", "VwSpecify_Numeric": "ValueOfView"})
+    result = result.rename(index=str, columns={"S/A": "SubArea", "DOM": "DaysOnMarket", "Tot BR": "Bedrooms", "Tot Baths": "Bathrooms", "TotFlArea": "FloorArea", "Yr Blt": "YearBuilt", "TotalPrkng": "Parking", "StratMtFee": "MaintenanceFees", "SP Sqft": "SalePricePerSquareFoot", "TotalPrkng": "Parking", "VwSpecify_Numeric": "ValueOfView"})
 
-    X = resut[['Address', 'SubArea', 'DaysOnMarket', 'Bedrooms', 'Bathrooms', 'FloorArea', 'YearBuilt', 'Age', 'Locker', 'Parking', 'MaintenanceFees', 'SalePricePerSquareFoot', 'List Price', 'Sold Date', 'ValueOfView']]
-    y = resut['Sold Price'].values
+    X = result[['Address', 'SubArea', 'DaysOnMarket', 'Bedrooms', 'Bathrooms', 'FloorArea', 'YearBuilt', 'Age', 'Locker', 'Parking', 'MaintenanceFees', 'SalePricePerSquareFoot', 'List Price', 'Sold Date', 'ValueOfView']]
+    y = result['Sold Price'].values
 
-    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.20)
+    # #Convert address to lat and long
+    # geolocator = Nominatim(user_agent="Akshay")
+    # location = geolocator.geocode("1055 Harwood Street, Vancouver")
+    # print(location)
+    # print((location.latitude, location.longitude))
 
-    print(result)
+    # X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.20)
+    #
+    # model = MLPRegressor(hidden_layer_sizes=(8, 6),
+    #                  activation='logistic', solver='lbfgs')
+    # model.fit(X_train, y_train)
+    # print(model.score(X_valid, y_valid))
+
+    # print(result)
     result.to_csv('2014-2019-cleaned.csv', index=False, header=True)
 
 if __name__ == '__main__':
