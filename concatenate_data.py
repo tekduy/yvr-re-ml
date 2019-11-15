@@ -76,6 +76,7 @@ def main():
     result = data14
     #Remove $ and , from prices
     result['Price'] = result['Price'].map(lambda x: x.lstrip('$')).replace(',', '', regex=True)
+    result['TotFlArea'] = result['TotFlArea'].map(lambda x: x.lstrip('$')).replace(',', '', regex=True)
     result['StratMtFee'] = result['StratMtFee'].astype(str).map(lambda x: x.lstrip('$')).replace(',', '', regex=True)
     result['SP Sqft'] = result['SP Sqft'].map(lambda x: x.lstrip('$')).replace(',', '', regex=True)
     result['List Price'] = result['List Price'].map(lambda x: x.lstrip('$')).replace(',', '', regex=True)
@@ -96,7 +97,19 @@ def main():
     result['VwSpecify_Numeric'] = result.apply(lambda x: convert_VwSpecify(x['View'], x['VwSpecify']), axis=1)
     result = result.rename(index=str, columns={"S/A": "SubArea", "DOM": "DaysOnMarket", "Tot BR": "Bedrooms", "Tot Baths": "Bathrooms", "TotFlArea": "FloorArea", "Yr Blt": "YearBuilt", "TotalPrkng": "Parking", "StratMtFee": "MaintenanceFees", "SP Sqft": "SalePricePerSquareFoot", "TotalPrkng": "Parking", "VwSpecify_Numeric": "ValueOfView"})
 
-    X = result[['Address', 'SubArea', 'DaysOnMarket', 'Bedrooms', 'Bathrooms', 'FloorArea', 'YearBuilt', 'Age', 'Locker', 'Parking', 'MaintenanceFees', 'SalePricePerSquareFoot', 'List Price', 'Sold Date', 'ValueOfView']]
+    #Convert SubArea to Numeric Value (VVWCB = Coal Harbour = 1, VVWDT = Downtown = 2, VVWWE = West End = 3, VVWYA = Yaletown = 4)
+    result['ValeOfSubArea'] = result['SubArea']
+    result['ValeOfSubArea'] = result['ValeOfSubArea'].replace('VVWCB', '1')
+    result['ValeOfSubArea'] = result['ValeOfSubArea'].replace('VVWDT', '2')
+    result['ValeOfSubArea'] = result['ValeOfSubArea'].replace('VVWWE', '3')
+    result['ValeOfSubArea'] = result['ValeOfSubArea'].replace('VVWYA', '4')
+
+    #Change Locker to numeric - Yes = 1, No = 0, Null = 0
+    result['Locker'] = result['Locker'].replace('Yes', '1')
+    result['Locker'] = result['Locker'].replace('No', '0')
+    # result['Locker'] = result['Locker'].replace('Yes', '1')
+
+    X = result[['ValeOfSubArea', 'DaysOnMarket', 'Bedrooms', 'Bathrooms', 'FloorArea', 'YearBuilt', 'Age', 'Locker', 'Parking', 'MaintenanceFees', 'SalePricePerSquareFoot', 'List Price', 'Sold Date', 'ValueOfView']]
     y = result['Sold Price'].values
 
     # #Convert address to lat and long
@@ -105,15 +118,15 @@ def main():
     # print(location)
     # print((location.latitude, location.longitude))
 
-    # X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.20)
-    #
-    # model = MLPRegressor(hidden_layer_sizes=(8, 6),
-    #                  activation='logistic', solver='lbfgs')
-    # model.fit(X_train, y_train)
-    # print(model.score(X_valid, y_valid))
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.20)
+
+    model = MLPRegressor(hidden_layer_sizes=(8, 6),
+                     activation='logistic', solver='lbfgs')
+    model.fit(X_train, y_train)
+    print(model.score(X_valid, y_valid))
 
     # print(result)
-    result.to_csv('2014-2019-cleaned.csv', index=False, header=True)
+    # result.to_csv('2014-2019-cleaned.csv', index=False, header=True)
 
 if __name__ == '__main__':
     main()
