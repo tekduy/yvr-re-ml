@@ -10,6 +10,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.neural_network import MLPRegressor
 from geopy.geocoders import Nominatim
+import re
+
+#212 838 HAMILTON STREET
+house_number_pattern = re.compile(r'^(\S+) \d+ \S+ \S+')
 
 def read_csv():
     data1 = pd.read_csv('2014-12.csv')
@@ -34,7 +38,12 @@ def convert_Parking(d):
         return 0
     else:
         return d
-    
+
+def get_HouseNumber(d):
+    m = house_number_pattern.match(d)
+    if m:
+        return m.group(1)
+
 def uppercase(d):
     return d.upper()
 
@@ -75,6 +84,9 @@ def main():
     
     #Convert Parking to 0 if null
     result['TotalPrkng'] = result['TotalPrkng'].apply(convert_Parking)
+    
+    #Get HouseNumber
+    result['HouseNumber'] = result['Address'].apply(get_HouseNumber)
     
     #Convert VwSpecify to uppercase
     result['VwSpecify'] = result['VwSpecify'].astype(str).apply(uppercase)
