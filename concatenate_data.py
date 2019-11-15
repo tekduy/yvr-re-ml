@@ -15,6 +15,9 @@ import re
 #212 838 HAMILTON STREET
 address_pattern = re.compile(r'^(\S+) \d+ \S+ \S+')
 house_number_pattern = re.compile(r'^\S+')
+penthouse_pattern = re.compile(r'^[PH]')
+other_house_pattern = re.compile(r'[^0-9]')
+apartment_pattern = re.compile(r'^[0-9]+[a-zA-Z]+$')
 
 def read_csv():
     data1 = pd.read_csv('2014-12.csv')
@@ -43,7 +46,18 @@ def nulls_to_zeros(d):
 def get_HouseNumber(d):
     m = address_pattern.match(d)
     if m:
-        return m.group(1)    
+        house_number = m.group(1)
+        h = penthouse_pattern.match(house_number) #Penthouse = 5000
+        other = other_house_pattern.match(house_number) #Other type of house number = 1000
+        a = apartment_pattern.match(house_number)
+        if h:
+            return 5000
+        elif other:
+            return 1000
+        elif a:
+            return 1000
+        else:
+            return house_number
 
 def format_GeoPy(d):
     new_address = re.sub(house_number_pattern, '', d) #Remove house number
@@ -150,7 +164,7 @@ def main():
 #    print(model.score(X_valid, y_valid))
 
     # print(result)
-    # result.to_csv('2014-2019-cleaned.csv', index=False, header=True)
+    result.to_csv('2014-2019-cleaned.csv', index=False, header=True)
 
 if __name__ == '__main__':
     main()
