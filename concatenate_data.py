@@ -39,6 +39,16 @@ def read_csv():
 
     return data
 
+def concatenate_csvs(data):
+    result = pd.concat([
+            data[0], data[1], data[2], data[3], 
+            data[4], data[5], data[6], data[7], 
+            data[8], data[9], data[10], data[11], 
+            data[12], data[13]])
+    
+    return result
+
+
 def nulls_to_zeros(d):
     if pd.isnull(d):
         return 0
@@ -100,7 +110,7 @@ def to_timestamp(d):
 
 def main():
     data = read_csv()
-    # result = pd.concat([data1, data2, data3, data4, data5, data6, data7, data8, data9, data10, data11, data12, data13, data14])
+    #result = concatenate_csvs(data)
     result = data[13]
 
     #Rename columns
