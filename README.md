@@ -1,13 +1,10 @@
 # TO DO 
 
 # Donald
-- Take Unit number out of address
-    - Penthouse value = 5000
-    - Other (Ex. GR value = 1000)
-
-
-
+Notes:
+ - fixed the locker thing for you
+ - changed datetime => timestamp and stored it in Sold Timestamp column
+ - fixed concatenation into a new function 'concatenate_csvs(data)'
 
 # Akshay  
-- Fix Locker (Change yes to 1, no to 0 and null to 0)
 - Fix other non-numerics
