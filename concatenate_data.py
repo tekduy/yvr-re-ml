@@ -92,6 +92,12 @@ def convert_VwSpecify(x,y):
         else:
             return 1
 
+def to_datetime(d):
+    return pd.to_datetime(d)
+
+def to_timestamp(d):
+    return d.timestamp()
+
 def main():
     data = read_csv()
     # result = pd.concat([data1, data2, data3, data4, data5, data6, data7, data8, data9, data10, data11, data12, data13, data14])
@@ -144,12 +150,16 @@ def main():
     #Change Locker to numeric - Yes = 1, No = 0, Null = 0
     result['Locker'] = result['Locker'].replace('Yes', '1')
     result['Locker'] = result['Locker'].replace('No', '0')
-    # result['Locker'] = result['Locker'].replace('Yes', '1')
+    result['Locker'] = result['Locker'].apply(nulls_to_zeros)
+    
+    #Change Sold Date to datetime and timestamp
+    result['Sold Date'] = result['Sold Date'].apply(to_datetime)
+    result['Sold Timestamp'] = result['Sold Date'].apply(to_timestamp)
 
     X = result[['ValueOfSubArea', 'DaysOnMarket',
                 'Bedrooms', 'Bathrooms', 'FloorArea', 'YearBuilt', 'Age',
                 'Locker', 'Parking', 'MaintenanceFees', 'SalePricePerSquareFoot',
-                'List Price', 'Sold Date', 'ValueOfView']].values
+                'List Price', 'Sold Timestamp', 'ValueOfView']].values
     y = result['Sold Price'].values
 
     # print(result['Address'])
@@ -163,7 +173,7 @@ def main():
     #     print(e)
     # print((location.latitude, location.longitude))
 
-    print(X)
+    #print(X)
 
     X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.20)
 
