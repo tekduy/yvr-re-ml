@@ -9,6 +9,9 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.neural_network import MLPRegressor
+from sklearn.preprocessing import MinMaxScaler, StandardScaler, FunctionTransformer
+from sklearn.preprocessing import Normalizer
+from sklearn.pipeline import make_pipeline
 from geopy.geocoders import Nominatim
 import re
 
@@ -108,10 +111,19 @@ def to_datetime(d):
 def to_timestamp(d):
     return d.timestamp()
 
+def to_float(d):
+    return float(d)
+
+def fix_maint_fees(x, y):
+    if pd.isnull(y):
+        return (x * 0.4)
+    else:
+        return y
+
 def main():
     data = read_csv()
-    #result = concatenate_csvs(data)
-    result = data[13]
+    result = concatenate_csvs(data)
+    #result = data[13]
 
     #Rename columns
     result = result.rename(index=str, columns={"S/A": "SubArea",
@@ -166,6 +178,34 @@ def main():
     result['Sold Date'] = result['Sold Date'].apply(to_datetime)
     result['Sold Timestamp'] = result['Sold Date'].apply(to_timestamp)
 
+    #Convert all columns to float
+    result['ValueOfSubArea'] = result['ValueOfSubArea'].apply(to_float)
+    result['DaysOnMarket'] = result['DaysOnMarket'].apply(to_float)
+    result['Bedrooms'] = result['Bedrooms'].apply(to_float)
+    result['Bathrooms'] = result['Bathrooms'].apply(to_float)
+    result['FloorArea'] = result['FloorArea'].apply(to_float)
+    result['YearBuilt'] = result['YearBuilt'].apply(to_float)
+    result['Locker'] = result['Locker'].apply(to_float)
+    result['Parking'] = result['Parking'].apply(to_float)
+    result['Sold Timestamp'] = result['Sold Timestamp'].apply(to_float)
+    result['ValueOfView'] = result['ValueOfView'].apply(to_float)
+    result['List Price'] = result['List Price'].apply(to_float)
+    result['Sold Price'] = result['Sold Price'].apply(to_float)
+    result['MaintenanceFees'] = result['MaintenanceFees'].apply(to_float)
+    result['SalePricePerSquareFoot'] = result['SalePricePerSquareFoot'].apply(to_float)
+
+    #Change nulls to an estimated maintenance fee
+    result['MaintenanceFees'] = result.apply(lambda x: fix_maint_fees(x['FloorArea'], x['MaintenanceFees']), axis=1)
+
+    #Scale-down List Price and Sold Price
+    result['List Price'] = result['List Price']/10000
+    result['Sold Price'] = result['Sold Price']/10000
+    result['MaintenanceFees'] = result['MaintenanceFees']/100
+    result['SalePricePerSquareFoot'] = result['SalePricePerSquareFoot']/100
+
+    # print(result)
+    result.to_csv('2014-2019-cleaned.csv', index=False, header=True)
+
     X = result[['ValueOfSubArea', 'DaysOnMarket',
                 'Bedrooms', 'Bathrooms', 'FloorArea', 'YearBuilt', 'Age',
                 'Locker', 'Parking', 'MaintenanceFees', 'SalePricePerSquareFoot',
@@ -186,14 +226,11 @@ def main():
     #print(X)
 
     X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.20)
-
-    model = MLPRegressor(hidden_layer_sizes=(8, 6),
-        activation='logistic', solver='lbfgs')
-    model.fit(X_train, y_train)
-    print(model.score(X_valid, y_valid))
-
-    # print(result)
-    result.to_csv('2014-2019-cleaned.csv', index=False, header=True)
-
+    
+    model1 = make_pipeline(StandardScaler(), MLPRegressor(hidden_layer_sizes=(8, 6),
+        activation='logistic', solver='lbfgs'))
+    model1.fit(X_train, y_train)
+    print(model1.score(X_valid, y_valid))
+    
 if __name__ == '__main__':
     main()
