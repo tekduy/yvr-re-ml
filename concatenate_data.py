@@ -14,6 +14,7 @@ from sklearn.preprocessing import Normalizer
 from sklearn.pipeline import make_pipeline
 from geopy.geocoders import Nominatim
 import re
+from datetime import date, datetime
 
 #212 838 HAMILTON STREET
 address_pattern = re.compile(r'^(\S+) \d+ \S+ \S+')
@@ -227,10 +228,45 @@ def main():
 
     X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.20)
     
-    model1 = make_pipeline(StandardScaler(), MLPRegressor(hidden_layer_sizes=(8, 6),
+    model = make_pipeline(StandardScaler(), MLPRegressor(hidden_layer_sizes=(8, 6),
         activation='logistic', solver='lbfgs'))
-    model1.fit(X_train, y_train)
-    print(model1.score(X_valid, y_valid))
+    model.fit(X_train, y_train)
+    print(model.score(X_valid, y_valid))
+
+    list_price = input("Please enter list price: ")
+    list_price = float(list_price)/10000
+    floor_area = input("Please enter floor area (in square feet): ")
+    floor_area = float(floor_area)
+    bedrooms = input("Please enter number of bedrooms: ")
+    bedrooms = float(bedrooms)
+    bathrooms = input("Please enter number of bathrooms: ")
+    bathrooms = float(bathrooms)
+    parking = input("Please enter number of parking stalls: ")
+    parking = float(parking)
+    locker = input("Please enter number of storage lockers: ")
+    locker = float(locker)
+    maintenance_fees = input("Please enter maintenance fees in dollars per month: ")
+    maintenance_fees = float(maintenance_fees)/100
+    year_built = input("Please enter year built: ")
+    age = 2019 - float(year_built)
+    age = float(age)
+    days_on_market = input("Please enter number of days the listing has been on the market: ")
+    days_on_market = float(days_on_market)
+    sub_area = input("Please enter sub area (Coal harbour = 1, Downtown = 2, West End = 3, Yaletown = 4): ")
+    sub_area = float(sub_area)
+    view = input("Please enter value for view (No view = 0, view but other = 1, mountains or city = 2, any kind of water view = 3): ")
+    view = float(view)
+    today = datetime.now()
+    sold_timestamp = datetime.timestamp(today)
+    sale_price_sqfoot = list_price/floor_area
     
+    X_predict = [[sub_area, days_on_market, bedrooms, bathrooms, floor_area, year_built,
+                 age, locker, parking, maintenance_fees, sale_price_sqfoot, list_price,
+                 sold_timestamp, view]]
+    
+    y_predict = model.predict(X_predict)
+    
+    print("Your sold price should be: ", y_predict*10000)
+   
 if __name__ == '__main__':
     main()
