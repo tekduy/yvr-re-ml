@@ -230,7 +230,7 @@ def main():
 
     X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.20)
 
-    model = make_pipeline(StandardScaler(), MLPRegressor(hidden_layer_sizes=(8, 6),
+    model = make_pipeline(StandardScaler(), MLPRegressor(hidden_layer_sizes=(18, 16),
         activation='logistic', solver='lbfgs'))
     model.fit(X_train, y_train)
     print("Model score: ", model.score(X_valid, y_valid))
@@ -344,7 +344,7 @@ def main():
     sold_price = plt.scatter(range(100), predict_price['Sold Price'], color='blue', s=8)
     predicted_price = plt.scatter(range(100), predict_price['Predicted Price'], color='red', s=8)
     plt.legend((sold_price, predicted_price), ('Sold Price', 'Predicted Price'))
-    plt.show()
+    #plt.show()
     
     list_price = input("Please enter list price: ")
     list_price = float(list_price)/10000
