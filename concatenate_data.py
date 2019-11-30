@@ -45,11 +45,11 @@ def read_csv():
 
 def concatenate_csvs(data):
     result = pd.concat([
-            data[0], data[1], data[2], data[3], 
-            data[4], data[5], data[6], data[7], 
-            data[8], data[9], data[10], data[11], 
+            data[0], data[1], data[2], data[3],
+            data[4], data[5], data[6], data[7],
+            data[8], data[9], data[10], data[11],
             data[12], data[13]])
-    
+
     return result
 
 
@@ -174,7 +174,7 @@ def main():
     result['Locker'] = result['Locker'].replace('Yes', '1')
     result['Locker'] = result['Locker'].replace('No', '0')
     result['Locker'] = result['Locker'].apply(nulls_to_zeros)
-    
+
     #Change Sold Date to datetime and timestamp
     result['Sold Date'] = result['Sold Date'].apply(to_datetime)
     result['Sold Timestamp'] = result['Sold Date'].apply(to_timestamp)
@@ -209,7 +209,7 @@ def main():
 
     X = result[['ValueOfSubArea', 'DaysOnMarket',
                 'Bedrooms', 'Bathrooms', 'FloorArea', 'YearBuilt', 'Age',
-                'Locker', 'Parking', 'MaintenanceFees', 'SalePricePerSquareFoot',
+                'Locker', 'Parking', 'MaintenanceFees',
                 'List Price', 'Sold Timestamp', 'ValueOfView']].values
     y = result['Sold Price'].values
 
@@ -227,7 +227,7 @@ def main():
     #print(X)
 
     X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.20)
-    
+
     model = make_pipeline(StandardScaler(), MLPRegressor(hidden_layer_sizes=(8, 6),
         activation='logistic', solver='lbfgs'))
     model.fit(X_train, y_train)
@@ -259,14 +259,14 @@ def main():
     today = datetime.now()
     sold_timestamp = datetime.timestamp(today)
     sale_price_sqfoot = list_price/floor_area
-    
+
     X_predict = [[sub_area, days_on_market, bedrooms, bathrooms, floor_area, year_built,
-                 age, locker, parking, maintenance_fees, sale_price_sqfoot, list_price,
+                 age, locker, parking, maintenance_fees, list_price,
                  sold_timestamp, view]]
-    
+
     y_predict = model.predict(X_predict)
-    
+
     print("Your sold price should be: ", y_predict*10000)
-   
+
 if __name__ == '__main__':
     main()
