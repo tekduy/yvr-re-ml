@@ -15,6 +15,8 @@ from sklearn.pipeline import make_pipeline
 from geopy.geocoders import Nominatim
 import re
 from datetime import date, datetime
+import matplotlib.pyplot as plt
+import seaborn
 
 #212 838 HAMILTON STREET
 address_pattern = re.compile(r'^(\S+) \d+ \S+ \S+')
@@ -151,10 +153,10 @@ def main():
     result['Parking'] = result['Parking'].apply(nulls_to_zeros)
 
     #Get HouseNumber
-    result['HouseNumber'] = result['Address'].apply(get_HouseNumber)
+    #result['HouseNumber'] = result['Address'].apply(get_HouseNumber)
 
     #Convert to GeoPy format
-    result['Address'] = result['Address'].apply(format_GeoPy)
+    #result['Address'] = result['Address'].apply(format_GeoPy)
 
     #Convert VwSpecify to uppercase
     result['VwSpecify'] = result['VwSpecify'].astype(str).apply(uppercase)
@@ -231,8 +233,119 @@ def main():
     model = make_pipeline(StandardScaler(), MLPRegressor(hidden_layer_sizes=(8, 6),
         activation='logistic', solver='lbfgs'))
     model.fit(X_train, y_train)
-    print(model.score(X_valid, y_valid))
+    print("Model score: ", model.score(X_valid, y_valid))
+    
+    #Perform Prediction
+    predict_price = pd.read_csv('2019-predict.csv')
 
+    #Rename columns
+    predict_price = predict_price.rename(index=str, columns={"S/A": "SubArea",
+                                               "DOM": "DaysOnMarket",
+                                               "Tot BR": "Bedrooms",
+                                               "Tot Baths": "Bathrooms",
+                                               "TotFlArea": "FloorArea",
+                                               "Yr Blt": "YearBuilt",
+                                               "TotalPrkng": "Parking",
+                                               "StratMtFee": "MaintenanceFees",
+                                               "SP Sqft": "SalePricePerSquareFoot",
+                                               "TotalPrkng": "Parking"})
+
+    #Remove $ and , from prices
+    predict_price['Price'] = predict_price['Price'].map(lambda x: x.lstrip('$')).replace(',', '', regex=True)
+    predict_price['MaintenanceFees'] = predict_price['MaintenanceFees'].astype(str).map(lambda x: x.lstrip('$')).replace(',', '', regex=True)
+    predict_price['SalePricePerSquareFoot'] = predict_price['SalePricePerSquareFoot'].map(lambda x: x.lstrip('$')).replace(',', '', regex=True)
+    predict_price['FloorArea'] = predict_price['FloorArea'].map(lambda x: x.lstrip('$')).replace(',', '', regex=True)
+    predict_price['List Price'] = predict_price['List Price'].map(lambda x: x.lstrip('$')).replace(',', '', regex=True)
+    predict_price['Sold Price'] = predict_price['Sold Price'].map(lambda x: x.lstrip('$')).replace(',', '', regex=True)
+    #print(predict_price)
+
+    #Convert Parking to 0 if null
+    predict_price['Parking'] = predict_price['Parking'].apply(nulls_to_zeros)
+
+    #Get HouseNumber
+    #predict_price['HouseNumber'] = predict_price['Address'].apply(get_HouseNumber)
+
+    #Convert to GeoPy format
+    #predict_price['Address'] = predict_price['Address'].apply(format_GeoPy)
+
+    #Convert VwSpecify to uppercase
+    predict_price['VwSpecify'] = predict_price['VwSpecify'].astype(str).apply(uppercase)
+    predict_price['VwSpecify'] = predict_price['VwSpecify'].replace('NAN', '')
+
+    #Convert VwSpecify to -1,0,1,2
+    predict_price['ValueOfView'] = predict_price.apply(lambda x: convert_VwSpecify(x['View'], x['VwSpecify']), axis=1)
+
+    #Convert SubArea to Numeric Value (VVWCB = Coal Harbour = 1, VVWDT = Downtown = 2, VVWWE = West End = 3, VVWYA = Yaletown = 4)
+    predict_price['ValueOfSubArea'] = predict_price['SubArea']
+    predict_price['ValueOfSubArea'] = predict_price['ValueOfSubArea'].replace('VVWCB', '1')
+    predict_price['ValueOfSubArea'] = predict_price['ValueOfSubArea'].replace('VVWDT', '2')
+    predict_price['ValueOfSubArea'] = predict_price['ValueOfSubArea'].replace('VVWWE', '3')
+    predict_price['ValueOfSubArea'] = predict_price['ValueOfSubArea'].replace('VVWYA', '4')
+
+    #Change Locker to numeric - Yes = 1, No = 0, Null = 0
+    predict_price['Locker'] = predict_price['Locker'].replace('Yes', '1')
+    predict_price['Locker'] = predict_price['Locker'].replace('No', '0')
+    predict_price['Locker'] = predict_price['Locker'].apply(nulls_to_zeros)
+
+    #Change Sold Date to datetime and timestamp
+    predict_price['Sold Date'] = predict_price['Sold Date'].apply(to_datetime)
+    predict_price['Sold Timestamp'] = predict_price['Sold Date'].apply(to_timestamp)
+
+    #Convert all columns to float
+    predict_price['ValueOfSubArea'] = predict_price['ValueOfSubArea'].apply(to_float)
+    predict_price['DaysOnMarket'] = predict_price['DaysOnMarket'].apply(to_float)
+    predict_price['Bedrooms'] = predict_price['Bedrooms'].apply(to_float)
+    predict_price['Bathrooms'] = predict_price['Bathrooms'].apply(to_float)
+    predict_price['FloorArea'] = predict_price['FloorArea'].apply(to_float)
+    predict_price['YearBuilt'] = predict_price['YearBuilt'].apply(to_float)
+    predict_price['Locker'] = predict_price['Locker'].apply(to_float)
+    predict_price['Parking'] = predict_price['Parking'].apply(to_float)
+    predict_price['Sold Timestamp'] = predict_price['Sold Timestamp'].apply(to_float)
+    predict_price['ValueOfView'] = predict_price['ValueOfView'].apply(to_float)
+    predict_price['List Price'] = predict_price['List Price'].apply(to_float)
+    predict_price['Sold Price'] = predict_price['Sold Price'].apply(to_float)
+    predict_price['MaintenanceFees'] = predict_price['MaintenanceFees'].apply(to_float)
+    predict_price['SalePricePerSquareFoot'] = predict_price['SalePricePerSquareFoot'].apply(to_float)
+
+    #Change nulls to an estimated maintenance fee
+    predict_price['MaintenanceFees'] = predict_price.apply(lambda x: fix_maint_fees(x['FloorArea'], x['MaintenanceFees']), axis=1)
+
+    #Scale-down List Price and Sold Price
+    predict_price['List Price'] = predict_price['List Price']/10000
+    predict_price['Sold Price'] = predict_price['Sold Price']/10000
+    predict_price['MaintenanceFees'] = predict_price['MaintenanceFees']/100
+    predict_price['SalePricePerSquareFoot'] = predict_price['SalePricePerSquareFoot']/100
+
+    X_predict = predict_price[['ValueOfSubArea', 'DaysOnMarket',
+                               'Bedrooms', 'Bathrooms', 'FloorArea', 'YearBuilt', 'Age',
+                               'Locker', 'Parking', 'MaintenanceFees',
+                               'List Price', 'Sold Timestamp', 'ValueOfView']].values
+    
+    y_predict = model.predict(X_predict)
+    y_predict = y_predict
+    
+    predict_price['Predicted Price'] = y_predict
+    predict_price['Sold Price'] = predict_price['Sold Price']
+    predict_price['Predicted/Sold'] = predict_price['Predicted Price']/predict_price['Sold Price']
+    predict_price['Residuals']= predict_price['Sold Price'] - predict_price['Predicted Price']
+    header = ["Address", "Sold Price", "Predicted Price", "Residuals", "Predicted/Sold"]
+    predict_price.to_csv('output_prediction.csv', columns=header, index=False)
+    
+    difference_mean = predict_price['Predicted/Sold'].mean()
+    residual_mean = predict_price['Residuals'].mean()
+    print("Mean of Predicted Price divided by Sold Price: ", difference_mean)
+    print("On average, the Predicted Price proportional to the Sold Price by:", difference_mean*100,"%")
+    print("Mean of Residuals: ", residual_mean)
+    
+    seaborn.set()
+    plt.title('Sold Price and Predicted Price')
+    plt.xlabel('Property')
+    plt.ylabel('Price * 10000')
+    sold_price = plt.scatter(range(100), predict_price['Sold Price'], color='blue', s=8)
+    predicted_price = plt.scatter(range(100), predict_price['Predicted Price'], color='red', s=8)
+    plt.legend((sold_price, predicted_price), ('Sold Price', 'Predicted Price'))
+    plt.show()
+    
     list_price = input("Please enter list price: ")
     list_price = float(list_price)/10000
     floor_area = input("Please enter floor area (in square feet): ")
@@ -258,7 +371,7 @@ def main():
     view = float(view)
     today = datetime.now()
     sold_timestamp = datetime.timestamp(today)
-    sale_price_sqfoot = list_price/floor_area
+    #sale_price_sqfoot = list_price/floor_area
 
     X_predict = [[sub_area, days_on_market, bedrooms, bathrooms, floor_area, year_built,
                  age, locker, parking, maintenance_fees, list_price,
